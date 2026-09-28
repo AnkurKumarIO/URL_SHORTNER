@@ -44,3 +44,15 @@ link_id in the clicks table acts as a Foreign Key pointing back to id in the lin
 ### My Notes & Explanations:
 - **Why HTTP 307 over 301:** I preferred Option B (HTTP 307) for this project because our aim is to record how frequently links are used and from where. It is better that every request is redirected by our server every time instead of getting saved in the browser's local cache.
 - **First Click vs Second Click Execution:** When a user clicks a link for the first time, it is checked in the Redis cache first. If not found, it is queried from PostgreSQL, written back into Redis cache, and returned as a 307 redirect. When any user clicks the same link 5 seconds later, it is already present in the Redis cache, which is accessed immediately and returned at RAM speed.
+
+## Day 4 — Build the Diary (Async Click Analytics)
+- **Built/Planned:** Asynchronous click logging using FastAPI `BackgroundTasks` and analytics reporting endpoints (`GET /analytics/{short_code}` and `GET /analytics`).
+- **Learned:** 
+  1. Why blocking database writes slow down redirects under heavy traffic.
+  2. How `BackgroundTasks.add_task()` decouples HTTP response delivery from disk I/O operations.
+- **Open Question:** How will we connect our React frontend dashboard to display real-time click metrics and test app stability under chaos?
+- **Prompt Log:** Justified Option B (async background tasks) over blocking writes for high-concurrency redirect performance.
+
+### My Notes & Explanations:
+- **Sync vs Async Decision:** I preferred Option B (Asynchronous Background Task) because we cannot make the user wait a long time, especially during heavy traffic bursts. Running click recording in the background keeps redirects fast.
+- **BackgroundTasks Mechanism:** `background_tasks.add_task()` pushes the click logging job (short code, timestamp, referrer, user agent) into a background task queue. It does NOT wait for PostgreSQL to finish writing to disk before returning the HTTP 307 redirect response back to the user.
