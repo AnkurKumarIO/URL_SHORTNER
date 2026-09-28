@@ -32,3 +32,15 @@ We separated links and clicks into two distinct tables because a single link can
 
 Foreign Keys & ondelete="CASCADE" -
 link_id in the clicks table acts as a Foreign Key pointing back to id in the links table, making sure clicks can only be saved for real, existing links. Setting ondelete="CASCADE" means if a shortened link is ever deleted, PostgreSQL automatically deletes all its associated click history in one clean operation, leaving no leftover "orphan" data.
+
+## Day 3 — Build the Doorway
+- **Built/Planned:** `POST /shorten` and `GET /r/{short_code}` endpoints in FastAPI with HTTP 307 temporary redirects and Redis cache-aside fallback.
+- **Learned:** 
+  1. Why HTTP 301 breaks click analytics (browsers cache redirects locally) while HTTP 307 forces browsers to contact our server on every click.
+  2. How the Cache-Aside pattern works: Redis miss $\rightarrow$ PostgreSQL lookup $\rightarrow$ populate Redis cache $\rightarrow$ return redirect.
+- **Open Question:** How will we record clicks in the background without slowing down the visitor's redirect speed?
+- **Prompt Log:** Justified choosing HTTP 307 over 301 for analytics tracking and verified `redirect.py` cache execution flow.
+
+### My Notes & Explanations:
+- **Why HTTP 307 over 301:** I preferred Option B (HTTP 307) for this project because our aim is to record how frequently links are used and from where. It is better that every request is redirected by our server every time instead of getting saved in the browser's local cache.
+- **First Click vs Second Click Execution:** When a user clicks a link for the first time, it is checked in the Redis cache first. If not found, it is queried from PostgreSQL, written back into Redis cache, and returned as a 307 redirect. When any user clicks the same link 5 seconds later, it is already present in the Redis cache, which is accessed immediately and returned at RAM speed.
