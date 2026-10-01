@@ -27,7 +27,6 @@ Our FastAPI backend catches that error, generates a new random short code (e.g. 
 
 We chose Option 2 (24-Hour TTL) for Redis because it prioritizes high-demand links—like when an event pass goes live and millions of people start clicking the same link on the same day. Storing links in Redis for 24 hours keeps popular links super fast in RAM when they are needed most, while automatically clearing out old, unused links after a day so our server memory doesn't overflow.
 
-Links vs Clicks Table Distinction - 
 We separated links and clicks into two distinct tables because a single link can be clicked thousands or millions of times (a One-to-Many relationship). Keeping them separate ensures that our main link lookup table stays small, clean, and fast, while every click event gets recorded as its own lightweight row without duplicating long URLs or locking the main table.
 
 Foreign Keys & ondelete="CASCADE" -
@@ -56,3 +55,14 @@ link_id in the clicks table acts as a Foreign Key pointing back to id in the lin
 ### My Notes & Explanations:
 - **Sync vs Async Decision:** I preferred Option B (Asynchronous Background Task) because we cannot make the user wait a long time, especially during heavy traffic bursts. Running click recording in the background keeps redirects fast.
 - **BackgroundTasks Mechanism:** `background_tasks.add_task()` pushes the click logging job (short code, timestamp, referrer, user agent) into a background task queue. It does NOT wait for PostgreSQL to finish writing to disk before returning the HTTP 307 redirect response back to the user.
+
+## Day 5 — Build the Shop Window & Chaos Testing
+- **Built/Planned:** React single-page analytics dashboard (`frontend/src/App.jsx`) and verified Chaos Checklist stability.
+- **Learned:** 
+  1. How React state (`useState`) and side effects (`useEffect`) dynamically update click analytics without page reloads.
+  2. Resilient system design: wrapping Redis calls in `try/except` enables graceful fallback to PostgreSQL if Redis crashes.
+- **Open Question:** None! All 5 days completed and verified.
+- **Prompt Log:** Verified Chaos Checklist results (burst traffic handling, clean 404 responses, and graceful Redis fallback).
+
+### My Notes & Explanations:
+- **Chaos Test (Redis Failure):** If Redis crashes or gets stopped mid-demo, `get_cached_url()` catches the exception and returns `None` (acting as a cache miss). Our backend seamlessly falls back to PostgreSQL to retrieve the long URL and return the HTTP 307 redirect without crashing the application.
